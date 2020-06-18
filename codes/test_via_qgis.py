@@ -24,15 +24,24 @@ iface.addRasterLayer(path_to_raster, "NDVI")
 
 pixelSizeX = rlayer.rasterUnitsPerPixelX()
 pixelSizeY = rlayer.rasterUnitsPerPixelY()
+raster_width = rlayer.width()
+raster_height = rlayer.height()
 crs = rlayer.crs().authid()
 
-print(pixelSizeX, pixelSizeY, crs)
+print(raster_width, raster_height, crs)
 
-writer = QgsVectorFileWriter("D:/ENSG/A_New_Era_G2/A_Stages/Projet_Stage/codes/test.shp",
-                             "Premier_shape",
-                             fields,
-                             QgsWkbTypes.Point, #### instead of QGis.WKBPoint
-                             QgsCoordinateReferenceSystem(), #### instead of None
-                             "ESRI Shapefile")
-
-qgs.exitQgis()
+shplayer = QgsVectorLayer("D:/ENSG/A_New_Era_G2/A_Stages/Projet_Stage/codes/shp_modifies/COMMUNE_Chelles.shp", "testlayer_shp", "ogr")
+pr = shplayer.dataProvider()
+if not shplayer.isValid():
+    print("Layer failed to load")
+else:
+    print("Layer loaded successfuly")
+    
+poly = QgsFeature()
+pts = [QgsPointXY(0, 0), QgsPointXY(0, raster_height), QgsPointXY(raster_width, raster_height), QgsPointXY(raster_width, 0)]
+poly.setGeometry(QgsGeometry.fromPolygonXY([pts]))
+pr.addFeatures([poly])
+# Commit changes
+shplayer.updateExtents()
+# Show in project
+QgsProject.instance().addMapLayer(shplayer)
