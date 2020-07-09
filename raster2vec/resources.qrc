@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/raster2vec" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>
