@@ -203,7 +203,10 @@ class Raster2Vec:
                 
         for e in layers2:
             if e.type() == QgsMapLayer.RasterLayer:
-                e.append(layers_list)
+                e.name().append(layers_list)
+                
+        for elt in layers_list:
+            elt.rasterType()
         
         # show the dialog
         self.dlg.show()
