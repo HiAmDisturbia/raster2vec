@@ -195,18 +195,23 @@ class Raster2Vec:
 		
         #layers = QgsProject.instance().layerTreeRoot().children()
         layers2 = QgsProject.instance().mapLayers().values()
-        layers_list = []
-        bandname = QgsProject.instance()
+#        layers_list = []
         
         self.dlg.input_raster.clear()
+        self.dlg.raster_band.clear()
         self.dlg.input_raster.addItems([layer.name() for layer in layers2 if layer.type() == QgsMapLayer.RasterLayer])
-                
-        for e in layers2:
-            if e.type() == QgsMapLayer.RasterLayer:
-                e.name().append(layers_list)
-                
-        for elt in layers_list:
-            elt.rasterType()
+        for layer in layers2:
+            if layer.type() == QgsMapLayer.RasterLayer:
+                amount_of_bands = layer.bandCount()
+                self.dlg.raster_band.addItems([layer.bandName(i) for i in range(amount_of_bands)])
+                #self.dlg.raster_band.displayBandName([(layer.dataProvider(), i) for i in range(amount_of_bands)])
+                        
+#        for e in layers2:
+#            if e.type() == QgsMapLayer.RasterLayer:
+#                e.name().append(layers_list)
+#                
+#        for elt in layers_list:
+#            elt.rasterType()
         
         # show the dialog
         self.dlg.show()
