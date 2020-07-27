@@ -188,13 +188,13 @@ class Raster2Vec:
         # Create the dialog with elements (after translation) and keep reference
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
         if self.first_start == True:
+            # Code below is read when the plugin is launched for the first time
             self.first_start = False
             self.dlg = Raster2VecDialog()
             self.dlg.open_output_vector.clicked.connect(self.select_output_file)
             self.dlg.open_input_raster.clicked.connect(self.select_output_file)
             #self.dlg.
 		
-        #layers = QgsProject.instance().layerTreeRoot().children()
         alllayers = QgsProject.instance().mapLayers().values()
         allrasterlayers = []
         for elt in alllayers:
@@ -213,16 +213,21 @@ class Raster2Vec:
 #            self.dlg.layer.displayBandName([i for i in range(amount_of_bands)])
         
         def layer_field_raster():
+            """
+            Adds the band values of the raster selected in Input Raster
+            """
             # Identify selected layer by its index
             selectedLayerIndex = self.dlg.input_raster.currentIndex()
             selectedLayer = allrasterlayers[selectedLayerIndex]
-            # Identify fields of the selected layer
+            # Counts the number of bands of the current layer, then adds the bands on the raster band comboBox
             amount_of_bands = selectedLayer.bandCount()
-            # Get field names of the fields
             self.dlg.raster_band.clear()
             self.dlg.raster_band.addItems([selectedLayer.bandName(i) for i in range(amount_of_bands)])
     
         def layer_field_wraster():
+            """
+            Adds the band values of the raster selected in Input Raster
+            """
             # Same comments as above
             selectedLayerIndex = self.dlg.input_weight_raster.currentIndex()
             selectedLayer = allrasterlayers[selectedLayerIndex]
@@ -230,14 +235,9 @@ class Raster2Vec:
             self.dlg.weight_raster_band.clear()            
             self.dlg.weight_raster_band.addItems([selectedLayer.bandName(i) for i in range(amount_of_bands)])
 
-        # When changing layer in comboBox, run the function "layer_field()" to refresh the field names in the associated comboBoxes
+        # Everytime the user selects a raster, the band values will change
         self.dlg.input_raster.currentIndexChanged.connect(layer_field_raster)
         self.dlg.input_weight_raster.currentIndexChanged.connect(layer_field_wraster)
-            
-#        selectedLayer = self.dlg.input_raster.currentLayer()
-#        self.dlg.raster_band.clear()
-#        amount_of_bands = selectedLayer.bandCount()
-#        self.dlg.raster_band.addItems([selectedLayer.bandName(i) for i in range(amount_of_bands)])
         
         # show the dialog
         self.dlg.show()
@@ -245,8 +245,7 @@ class Raster2Vec:
         result = self.dlg.exec_()
         # See if OK was pressed
         if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
+            # Do something useful here - delete the line containing pass and substitute with your code.
             print(alllayers)
             print(allrasterlayers)
             print(allrasterlayers_paths)
