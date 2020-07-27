@@ -32,16 +32,6 @@
     <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
    </property>
   </widget>
-  <widget class="QComboBox" name="input_raster">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>40</y>
-     <width>871</width>
-     <height>22</height>
-    </rect>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_input_raster">
    <property name="geometry">
     <rect>
@@ -53,19 +43,6 @@
    </property>
    <property name="text">
     <string>Input raster</string>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="line_output_vector">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>310</y>
-     <width>871</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <property name="placeholderText">
-    <string>Choose a path to save your image</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_band_number_rst">
@@ -105,19 +82,6 @@
    </property>
    <property name="text">
     <string>Output vector</string>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="line_output_layer_name">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>370</y>
-     <width>911</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <property name="placeholderText">
-    <string>Choose a name for the vector file, added in the map, as a layer</string>
    </property>
   </widget>
   <widget class="QLabel" name="input_name">
@@ -234,16 +198,6 @@
     <string>Input weight raster</string>
    </property>
   </widget>
-  <widget class="QComboBox" name="input_weight_raster">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>140</y>
-     <width>871</width>
-     <height>22</height>
-    </rect>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_weight_value">
    <property name="geometry">
     <rect>
@@ -276,12 +230,69 @@
     <string notr="true"/>
    </property>
   </widget>
+  <widget class="QgsFilterLineEdit" name="line_output_vector">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>310</y>
+     <width>871</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="placeholderText">
+    <string>Choose a path to save your image:</string>
+   </property>
+   <property name="qgisRelation" stdset="0">
+    <string notr="true"/>
+   </property>
+  </widget>
+  <widget class="QgsFilterLineEdit" name="line_output_layer_name">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>370</y>
+     <width>871</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="placeholderText">
+    <string>Choose a name for the layer that will be added to the map:</string>
+   </property>
+   <property name="qgisRelation" stdset="0">
+    <string notr="true"/>
+   </property>
+  </widget>
+  <widget class="QgsMapLayerComboBox" name="input_raster">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>40</y>
+     <width>861</width>
+     <height>27</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QgsMapLayerComboBox" name="input_weight_raster">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>140</y>
+     <width>861</width>
+     <height>27</height>
+    </rect>
+   </property>
+  </widget>
  </widget>
  <customwidgets>
   <customwidget>
    <class>QgsFilterLineEdit</class>
    <extends>QLineEdit</extends>
    <header>qgsfilterlineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QgsMapLayerComboBox</class>
+   <extends>QComboBox</extends>
+   <header>qgsmaplayercombobox.h</header>
   </customwidget>
   <customwidget>
    <class>QgsRasterBandComboBox</class>

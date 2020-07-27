@@ -24,14 +24,15 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QFileDialog
-from qgis.core import QgsProject, Qgis, QgsMapLayer
+from qgis.core import *
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
 from .raster2vec_dialog import Raster2VecDialog
 import os.path
-
+import numpy as np
+from osgeo import gdal
 
 class Raster2Vec:
     """QGIS Plugin Implementation."""
@@ -194,24 +195,49 @@ class Raster2Vec:
             #self.dlg.
 		
         #layers = QgsProject.instance().layerTreeRoot().children()
-        layers2 = QgsProject.instance().mapLayers().values()
-#        layers_list = []
+        alllayers = QgsProject.instance().mapLayers().values()
+        allrasterlayers = []
+        for elt in alllayers:
+            if elt.type() == QgsMapLayer.RasterLayer:
+                allrasterlayers.append(elt)
+        allrasterlayers_paths = [layer.source() for layer in allrasterlayers]
         
         self.dlg.input_raster.clear()
         self.dlg.raster_band.clear()
-        self.dlg.input_raster.addItems([layer.name() for layer in layers2 if layer.type() == QgsMapLayer.RasterLayer])
-        for layer in layers2:
-            if layer.type() == QgsMapLayer.RasterLayer:
-                amount_of_bands = layer.bandCount()
-                self.dlg.raster_band.addItems([layer.bandName(i) for i in range(amount_of_bands)])
-                #self.dlg.raster_band.displayBandName([(layer.dataProvider(), i) for i in range(amount_of_bands)])
-                        
-#        for e in layers2:
-#            if e.type() == QgsMapLayer.RasterLayer:
-#                e.name().append(layers_list)
-#                
-#        for elt in layers_list:
-#            elt.rasterType()
+        self.dlg.input_raster.addItems([layer.name() for layer in allrasterlayers])
+        
+#        for layer in allrasterlayers:
+#            self.dlg.raster_band.clear()
+#            amount_of_bands = layer.bandCount()
+#            self.dlg.raster_band.addItems([layer.bandName(i) for i in range(amount_of_bands)])
+#            self.dlg.layer.displayBandName([i for i in range(amount_of_bands)])
+        
+        def layer_field_raster():
+            # Identify selected layer by its index
+            selectedLayerIndex = self.dlg.input_raster.currentIndex()
+            selectedLayer = allrasterlayers[selectedLayerIndex]
+            # Identify fields of the selected layer
+            amount_of_bands = selectedLayer.bandCount()
+            # Get field names of the fields
+            self.dlg.raster_band.clear()
+            self.dlg.raster_band.addItems([selectedLayer.bandName(i) for i in range(amount_of_bands)])
+    
+        def layer_field_wraster():
+            # Same comments as above
+            selectedLayerIndex = self.dlg.input_weight_raster.currentIndex()
+            selectedLayer = allrasterlayers[selectedLayerIndex]
+            amount_of_bands = selectedLayer.bandCount()
+            self.dlg.weight_raster_band.clear()            
+            self.dlg.weight_raster_band.addItems([selectedLayer.bandName(i) for i in range(amount_of_bands)])
+
+        # When changing layer in comboBox, run the function "layer_field()" to refresh the field names in the associated comboBoxes
+        self.dlg.input_raster.currentIndexChanged.connect(layer_field_raster)
+        self.dlg.input_weight_raster.currentIndexChanged.connect(layer_field_wraster)
+            
+#        selectedLayer = self.dlg.input_raster.currentLayer()
+#        self.dlg.raster_band.clear()
+#        amount_of_bands = selectedLayer.bandCount()
+#        self.dlg.raster_band.addItems([selectedLayer.bandName(i) for i in range(amount_of_bands)])
         
         # show the dialog
         self.dlg.show()
@@ -221,8 +247,31 @@ class Raster2Vec:
         if result:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
-            #print()
-            #self.iface.messageBar().pushMessage("Success", "Output file written at " + filename, level=Qgis.Success, duration=3)
+            print(alllayers)
+            print(allrasterlayers)
+            print(allrasterlayers_paths)
+            selectedLayerIndex = self.dlg.input_raster.currentIndex()
+            selectedLayer = allrasterlayers[selectedLayerIndex]
+            current_path_raster = selectedLayer.source()
+#            selectedLayerIndex2 = self.dlg.input_weight_raster.currentIndex()
+#            selectedLayer2 = allrasterlayers[selectedLayerIndex2]
+#            current_path_wraster = selectedLayer2.source()
+            dataset = gdal.Open(current_path_raster)
+            band1 = np.array(dataset.GetRasterBand(1).ReadAsArray())
+#            band2 = np.array(dataset.GetRasterBand(2).ReadAsArray())
+#            band3 = np.array(dataset.GetRasterBand(3).ReadAsArray())
+            moy = np.mean(band1)
+            avrg = np.average(band1)
+            
+            print(selectedLayer.name())
+            print(band1)
+#            print(band2)
+#            print(band3)
+            print(moy)
+            print(avrg)
+
+            #print("Dimension of the selected raster: ", current_layer.width(), current_layer.height())
+#            self.iface.messageBar().pushMessage("Success", "Output file written at " + filename, level=Qgis.Success, duration=3)
             pass
 
     def select_output_file(self):
