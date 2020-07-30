@@ -193,7 +193,6 @@ class Raster2Vec:
             self.dlg = Raster2VecDialog()
             self.dlg.open_output_vector.clicked.connect(self.select_output_file)
             self.dlg.open_input_raster.clicked.connect(self.select_output_file)
-            #self.dlg.
 		
         alllayers = QgsProject.instance().mapLayers().values()
         allrasterlayers = []
@@ -202,23 +201,25 @@ class Raster2Vec:
                 allrasterlayers.append(elt)
         allrasterlayers_paths = [layer.source() for layer in allrasterlayers]
         
-        self.dlg.input_raster.clear()
+        self.dlg.input_raster2.clear()
         self.dlg.raster_band.clear()
-        self.dlg.input_raster.addItems([layer.name() for layer in allrasterlayers])
+        self.dlg.input_weight_raster2.clear()
+        self.dlg.weight_raster_band.clear()
+        self.dlg.input_raster2.addItems([layer.name() for layer in allrasterlayers])
+        self.dlg.input_weight_raster2.addItems([layer.name() for layer in allrasterlayers])
         
-#        for layer in allrasterlayers:
-#            self.dlg.raster_band.clear()
-#            amount_of_bands = layer.bandCount()
-#            self.dlg.raster_band.addItems([layer.bandName(i) for i in range(amount_of_bands)])
-#            self.dlg.layer.displayBandName([i for i in range(amount_of_bands)])
+#        raster_tri = sorted(allrasterlayers)
+        print(allrasterlayers)
+        print([elt.name() for elt in allrasterlayers])
         
         def layer_field_raster():
             """
             Adds the band values of the raster selected in Input Raster
             """
             # Identify selected layer by its index
-            selectedLayerIndex = self.dlg.input_raster.currentIndex()
+            selectedLayerIndex = self.dlg.input_raster2.currentIndex()
             selectedLayer = allrasterlayers[selectedLayerIndex]
+#            print(selectedLayer.name())
             # Counts the number of bands of the current layer, then adds the bands on the raster band comboBox
             amount_of_bands = selectedLayer.bandCount()
             self.dlg.raster_band.clear()
@@ -226,18 +227,18 @@ class Raster2Vec:
     
         def layer_field_wraster():
             """
-            Adds the band values of the raster selected in Input Raster
+            Adds the band values of the raster selected in Weight Raster
             """
             # Same comments as above
-            selectedLayerIndex = self.dlg.input_weight_raster.currentIndex()
+            selectedLayerIndex = self.dlg.input_weight_raster2.currentIndex()
             selectedLayer = allrasterlayers[selectedLayerIndex]
             amount_of_bands = selectedLayer.bandCount()
             self.dlg.weight_raster_band.clear()            
             self.dlg.weight_raster_band.addItems([selectedLayer.bandName(i) for i in range(amount_of_bands)])
 
         # Everytime the user selects a raster, the band values will change
-        self.dlg.input_raster.currentIndexChanged.connect(layer_field_raster)
-        self.dlg.input_weight_raster.currentIndexChanged.connect(layer_field_wraster)
+        self.dlg.input_raster2.currentIndexChanged.connect(layer_field_raster)
+        self.dlg.input_weight_raster2.currentIndexChanged.connect(layer_field_wraster)
         
         # show the dialog
         self.dlg.show()
@@ -246,10 +247,11 @@ class Raster2Vec:
         # See if OK was pressed
         if result:
             # Do something useful here - delete the line containing pass and substitute with your code.
-            print(alllayers)
-            print(allrasterlayers)
-            print(allrasterlayers_paths)
-            selectedLayerIndex = self.dlg.input_raster.currentIndex()
+#            print(alllayers)
+#            print(allrasterlayers)
+#            print(allrasterlayers_paths)
+            selectedLayerIndex = self.dlg.input_raster2.currentIndex()
+            print(selectedLayerIndex)
             selectedLayer = allrasterlayers[selectedLayerIndex]
             current_path_raster = selectedLayer.source()
 #            selectedLayerIndex2 = self.dlg.input_weight_raster.currentIndex()
