@@ -21,7 +21,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
+from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QFileDialog
 from qgis.core import *
@@ -195,6 +195,7 @@ class Raster2Vec:
             self.dlg.open_input_raster.clicked.connect(self.select_output_file)
 		
         alllayers = QgsProject.instance().mapLayers().values()
+#        alllayers.sort()
         allrasterlayers = []
         for elt in alllayers:
             if elt.type() == QgsMapLayer.RasterLayer:
@@ -205,10 +206,15 @@ class Raster2Vec:
         self.dlg.raster_band.clear()
         self.dlg.input_weight_raster2.clear()
         self.dlg.weight_raster_band.clear()
+        self.dlg.line_weight_value.clear()
+        self.dlg.line_output_vector.clear()
+        self.dlg.line_output_layer_name.clear()
+        
         self.dlg.input_raster2.addItems([layer.name() for layer in allrasterlayers])
         self.dlg.input_weight_raster2.addItems([layer.name() for layer in allrasterlayers])
         
 #        raster_tri = sorted(allrasterlayers)
+        allrasterlayers.sort
         print(allrasterlayers)
         print([elt.name() for elt in allrasterlayers])
         
@@ -247,16 +253,62 @@ class Raster2Vec:
         # See if OK was pressed
         if result:
             # Do something useful here - delete the line containing pass and substitute with your code.
+            weight = self.dlg.line_weight_value.text()
+            output_vector = self.dlg.line_output_vector.text()
+            output_layer_name = self.dlg.line_output_layer_name.text()
+            
+            if weight == '0' or weight is None:
+                print(weight)
+                weight = self.dlg.line_weight_value.setText('1')
+                weight = float(self.dlg.line_weight_value.text())
+            
+            print(weight)
+            
 #            print(alllayers)
 #            print(allrasterlayers)
 #            print(allrasterlayers_paths)
             selectedLayerIndex = self.dlg.input_raster2.currentIndex()
-            print(selectedLayerIndex)
+#            print(selectedLayerIndex)
             selectedLayer = allrasterlayers[selectedLayerIndex]
             current_path_raster = selectedLayer.source()
+            selectedLayer_width = selectedLayer.width()
+            selectedLayer_height = selectedLayer.height()
+            
 #            selectedLayerIndex2 = self.dlg.input_weight_raster.currentIndex()
 #            selectedLayer2 = allrasterlayers[selectedLayerIndex2]
 #            current_path_wraster = selectedLayer2.source()
+            
+#            shplayer = QgsVectorLayer("D:/ENSG/A_New_Era_G2/A_Stages/Projet_Stage/codes/shp_modifies/COMMUNE_Chelles.shp", "testlayer_shp", "ogr")
+#            pr = shplayer.dataProvider()
+#            if not shplayer.isValid():
+#                print("Layer failed to load")
+#            else:
+#                print("Layer loaded successfuly")
+            
+            shplayer = QgsVectorLayer("Polygon", "temporary_polygon", "memory")
+            provider = shplayer.dataProvider()
+            shplayer.startEditing()
+            
+            provider.addAttributes([QgsField("id", QVariant.Int), QgsField("value", QVariant.Double), QgsField("name", QVariant.String)])
+                
+            poly = QgsFeature()
+            pts = [QgsPointXY(0, 0), QgsPointXY(0, selectedLayer_height), QgsPointXY(selectedLayer_width, selectedLayer_height), QgsPointXY(selectedLayer_width, 0)]
+            poly.setGeometry(QgsGeometry.fromPolygonXY([pts]))
+            poly.setAttributes([0, 3, "value"])
+            provider.addFeatures([poly])
+            # Commit changes
+            shplayer.updateExtents()
+            # Show in project
+            QgsProject.instance().addMapLayer(shplayer)
+            
+            print("No. fields:", len(provider.fields()))
+            print("No. features:", provider.featureCount())
+            e = shplayer.extent()
+            print("Extent:", e.xMinimum(), e.yMinimum(), e.xMaximum(), e.yMaximum())
+             
+            for f in shplayer.getFeatures():
+                print("Feature:", f.id(), f.attributes(), f.geometry().asPolygon())
+            
             dataset = gdal.Open(current_path_raster)
             band1 = np.array(dataset.GetRasterBand(1).ReadAsArray())
 #            band2 = np.array(dataset.GetRasterBand(2).ReadAsArray())
@@ -264,12 +316,12 @@ class Raster2Vec:
             moy = np.mean(band1)
             avrg = np.average(band1)
             
-            print(selectedLayer.name())
-            print(band1)
+#            print(selectedLayer.name())
+#            print(band1)
 #            print(band2)
 #            print(band3)
-            print(moy)
-            print(avrg)
+#            print(moy)
+#            print(avrg)
 
             #print("Dimension of the selected raster: ", current_layer.width(), current_layer.height())
 #            self.iface.messageBar().pushMessage("Success", "Output file written at " + filename, level=Qgis.Success, duration=3)
