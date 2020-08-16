@@ -33,6 +33,16 @@ from .raster2vec_dialog import Raster2VecDialog
 import os.path
 import numpy as np
 from osgeo import gdal
+import sys
+
+sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), "./parallel-cut-pursuit-master/python/wrappers"))
+sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), "./multilabel-potrace-master/python/wrappers"))
+#sys.path.append('./parallel-cut-pursuit-master/python/wrappers')
+#sys.path.append('./multilabel-potrace-master/python/wrappers')
+
+from cp_kmpp_d0_dist import cp_kmpp_d0_dist 
+#from cp_pfdr_d1_ql1b import cp_pfdr_d1_ql1b 
+#from cp_pfdr_d1_lsx import cp_pfdr_d1_lsx 
 
 class Raster2Vec:
     """QGIS Plugin Implementation."""
@@ -273,10 +283,19 @@ class Raster2Vec:
             current_path_raster = selectedLayer.source()
             selectedLayer_width = selectedLayer.width()
             selectedLayer_height = selectedLayer.height()
+            selectedLayer_crs = selectedLayer.crs()
+#            print("CRS: ", selectedLayer_crs)
             
-#            selectedLayerIndex2 = self.dlg.input_weight_raster.currentIndex()
-#            selectedLayer2 = allrasterlayers[selectedLayerIndex2]
-#            current_path_wraster = selectedLayer2.source()
+            selectedBandIndex = self.dlg.raster_band.currentIndex()
+            print("Band number: ", selectedBandIndex)
+            
+            selectedLayerIndex2 = self.dlg.input_weight_raster2.currentIndex()
+#            print(selectedLayerIndex)
+            selectedLayer2 = allrasterlayers[selectedLayerIndex2]
+            current_path_wraster = selectedLayer2.source()
+            selectedLayer2_width = selectedLayer2.width()
+            selectedLayer2_height = selectedLayer2.height()
+            selectedLayer2_crs = selectedLayer2.crs()
             
 #            shplayer = QgsVectorLayer("D:/ENSG/A_New_Era_G2/A_Stages/Projet_Stage/codes/shp_modifies/COMMUNE_Chelles.shp", "testlayer_shp", "ogr")
 #            pr = shplayer.dataProvider()
@@ -286,16 +305,34 @@ class Raster2Vec:
 #                print("Layer loaded successfuly")
             
             shplayer = QgsVectorLayer("Polygon", "temporary_polygon", "memory")
+            shplayer.setCrs(selectedLayer_crs)
             provider = shplayer.dataProvider()
-            shplayer.startEditing()
+#            shplayer.startEditing()
             
             provider.addAttributes([QgsField("id", QVariant.Int), QgsField("value", QVariant.Double), QgsField("name", QVariant.String)])
-                
+            
+            ext = selectedLayer.extent()
+            x_min = ext.xMinimum()
+            x_max = ext.xMaximum()
+            y_min = ext.yMinimum()
+            y_max = ext.yMaximum()
+            print("Coordinates: ", x_min, x_max, y_min, y_max)
+            
             poly = QgsFeature()
-            pts = [QgsPointXY(0, 0), QgsPointXY(0, selectedLayer_height), QgsPointXY(selectedLayer_width, selectedLayer_height), QgsPointXY(selectedLayer_width, 0)]
+                        
+            pts = [QgsPointXY(x_min, y_min), QgsPointXY(x_min, y_max), QgsPointXY(x_max, y_max), QgsPointXY(x_max, y_min)]
             poly.setGeometry(QgsGeometry.fromPolygonXY([pts]))
             poly.setAttributes([0, 3, "value"])
+            
+            poly2 = QgsFeature()
+                        
+            pts = [QgsPointXY(x_min, y_min), QgsPointXY(x_min, y_max), QgsPointXY(x_max, y_max)]
+            poly2.setGeometry(QgsGeometry.fromPolygonXY([pts]))
+            poly2.setAttributes([0, 3, "value"])
             provider.addFeatures([poly])
+#            provider.addFeatures([np.nan])
+            provider.addFeatures([poly2])
+            
             # Commit changes
             shplayer.updateExtents()
             # Show in project
@@ -310,18 +347,102 @@ class Raster2Vec:
                 print("Feature:", f.id(), f.attributes(), f.geometry().asPolygon())
             
             dataset = gdal.Open(current_path_raster)
-            band1 = np.array(dataset.GetRasterBand(1).ReadAsArray())
+            band1 = np.array(dataset.GetRasterBand(selectedBandIndex + 1).ReadAsArray())
 #            band2 = np.array(dataset.GetRasterBand(2).ReadAsArray())
 #            band3 = np.array(dataset.GetRasterBand(3).ReadAsArray())
-            moy = np.mean(band1)
+            moy = np.nanmean(band1)
             avrg = np.average(band1)
+            number_rows = band1.shape[0]
+            number_columns = band1.shape[1]
+            
+            dataset = gdal.Open(current_path_wraster)
+            band1_2 = np.array(dataset.GetRasterBand(selectedBandIndex + 1).ReadAsArray())
+            avrg = np.average(band1_2)
+            number_rows2 = band1_2.shape[0]
+            number_columns2 = band1_2.shape[1]
             
 #            print(selectedLayer.name())
-#            print(band1)
+            print(band1)
+            print(band1_2)
+            print(band1.dtype)
+            print(band1.data.contiguous)
 #            print(band2)
 #            print(band3)
-#            print(moy)
-#            print(avrg)
+            print(moy)
+            print(avrg)
+            print((band1==band1).all())
+            print("Number of rows for raster: ", number_rows)
+            print("Number of columns for raster: ", number_columns)
+            print("Number of rows for weight raster: ", number_rows2)
+            print("Number of columns for weight raster", number_columns2)
+            
+            #Ci-dessous le code à tester du grid, après résoudre le problème de la Bounding Box
+            
+#            def compute_grid(lin, col):
+#                """
+#                Compute the Astar representation of a 8-neighborhood,grid graph
+#                INPUT:
+#                lin, col = size of the grid
+#                OUTPUT:
+#                first_edge, adj_vertices = Astar graph
+#                edgeweight = associated edge weight
+#                """
+#                A = np.arange(lin*col).reshape(lin,col)
+#                # down arrow
+#                source  = A[:-1,:]
+#                target   = A[1:,:]
+#                down = np.stack((source.flatten(), target.flatten()),0)
+#                # right arrow
+#                source  = A[:,:-1]
+#                target  = A[:,1:]
+#                right = np.stack((source.flatten(), target.flatten()),0)
+#                # down-right arrow
+#                source = A[:-1,:-1]
+#                target  = A[1:,1:]
+#                down_right = np.stack((source.flatten(), target.flatten()),0)
+#                # up-right arrow
+#                source = A[1:,:-1]
+#                target = A[:-1,1:]
+#                up_right = np.stack((source.flatten(), target.flatten()),0)
+#                #mergeing
+#                T = np.concatenate((right, down, down_right, up_right), axis=1)
+#                #weighting, see "Computing Geodesics and Minimal Surfaces via Graph Cuts", Boyjob & Kolmogorov 2003
+#                weights = np.ones((T.shape[1],),dtype='f4')
+#                weights[int(T.shape[1]/2):] = 1/math.sqrt(2)
+#                #formatting
+#                reorder = T[0,:].argsort()
+#                T = T[:,reorder]
+#                weights = weights[reorder]
+#                v = np.concatenate(([0],np.where((T[0,:-1]==T[0,1:])==False)[0]+1,[T.shape[1], T.shape[1]]))
+#                first_edge = np.array(v, dtype='uint32')
+#                adj_vertices = np.array(T[1,:],dtype='uint32') 
+#                return first_edge, adj_vertices, weights
+#            #input raster
+#            obs = mpimg.imread('lena.png')[:,:,0]
+#            #bounding box
+#            min_x = 0	
+#            min_y = 0
+#            max_x = 10
+#            max_y = 10		
+#            true_size_x = max_x-min_x
+#            true_size_y = max_y-min_y
+#            lin = obs.shape[0]
+#            col= obs.shape[1]
+#            delta_x = true_size_x/col
+#            delta_y = true_size_y/lin
+#            first_edge, adj_vertices, edg_weights = compute_grid(lin, col)
+#            edg_weights = edg_weights.astype(obs.dtype)
+#            
+#            Comp, rX, dump = cp_kmpp_d0_dist(1, obs.flatten(), first_edge, adj_vertices, edge_weights = edg_weights*0.05)
+#            print('cp results')
+#            #print(Comp.reshape(obs.shape))
+#            bb, nparts, npoints, parts, points = multilabel_potrace_shp(col, lin, Comp, rX.shape[1])
+#            print('potrace results')
+#            #print(bb)
+#            #print(nparts)
+#            #print(npoints)
+#            ##print(parts)
+#            #print(points)
 
             #print("Dimension of the selected raster: ", current_layer.width(), current_layer.height())
 #            self.iface.messageBar().pushMessage("Success", "Output file written at " + filename, level=Qgis.Success, duration=3)
@@ -330,5 +451,3 @@ class Raster2Vec:
     def select_output_file(self):
         filename, _filter = QFileDialog.getSaveFileName(self.dlg, "Select output file: ", "", 'Image file (*.jpg, *.png, *.tif)')
         self.dlg.lineEdit.setText(filename)
-        
-    
