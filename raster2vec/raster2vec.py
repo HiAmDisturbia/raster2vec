@@ -35,12 +35,13 @@ import numpy as np
 from osgeo import gdal
 import sys
 
-sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), "./parallel-cut-pursuit-master/python/wrappers"))
-sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), "./multilabel-potrace-master/python/wrappers"))
+sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), "./parallel-cut-pursuit/python/wrappers"))
+sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), "./multilabel-potrace/python/wrappers"))
 #sys.path.append('./parallel-cut-pursuit-master/python/wrappers')
 #sys.path.append('./multilabel-potrace-master/python/wrappers')
 
-from cp_kmpp_d0_dist import cp_kmpp_d0_dist 
+from cp_kmpp_d0_dist import cp_kmpp_d0_dist
+from multilabel_potrace_shp import multilabel_potrace_shp
 #from cp_pfdr_d1_ql1b import cp_pfdr_d1_ql1b 
 #from cp_pfdr_d1_lsx import cp_pfdr_d1_lsx 
 
@@ -297,19 +298,12 @@ class Raster2Vec:
             selectedLayer2_height = selectedLayer2.height()
             selectedLayer2_crs = selectedLayer2.crs()
             
-#            shplayer = QgsVectorLayer("D:/ENSG/A_New_Era_G2/A_Stages/Projet_Stage/codes/shp_modifies/COMMUNE_Chelles.shp", "testlayer_shp", "ogr")
-#            pr = shplayer.dataProvider()
-#            if not shplayer.isValid():
-#                print("Layer failed to load")
-#            else:
-#                print("Layer loaded successfuly")
-            
             shplayer = QgsVectorLayer("Polygon", "temporary_polygon", "memory")
             shplayer.setCrs(selectedLayer_crs)
             provider = shplayer.dataProvider()
 #            shplayer.startEditing()
             
-            provider.addAttributes([QgsField("id", QVariant.Int), QgsField("value", QVariant.Double), QgsField("name", QVariant.String)])
+            provider.addAttributes([QgsField("id", QVariant.Int), QgsField("value", QVariant.Double)])
             
             ext = selectedLayer.extent()
             x_min = ext.xMinimum()
@@ -321,27 +315,17 @@ class Raster2Vec:
             poly = QgsFeature()
                         
             pts = [QgsPointXY(x_min, y_min), QgsPointXY(x_min, y_max), QgsPointXY(x_max, y_max), QgsPointXY(x_max, y_min)]
-            poly.setGeometry(QgsGeometry.fromPolygonXY([pts]))
-            poly.setAttributes([0, 3, "value"])
+#            poly.setGeometry(QgsGeometry.fromPolygonXY([pts]))
+#            poly.setAttributes([0, 3])
             
-            poly2 = QgsFeature()
+#            poly2 = QgsFeature()
                         
-            pts = [QgsPointXY(x_min, y_min), QgsPointXY(x_min, y_max), QgsPointXY(x_max, y_max)]
-            poly2.setGeometry(QgsGeometry.fromPolygonXY([pts]))
-            poly2.setAttributes([0, 3, "value"])
-            provider.addFeatures([poly])
-#            provider.addFeatures([np.nan])
-            provider.addFeatures([poly2])
-            
-            # Commit changes
-            shplayer.updateExtents()
-            # Show in project
-            QgsProject.instance().addMapLayer(shplayer)
-            
-            print("No. fields:", len(provider.fields()))
-            print("No. features:", provider.featureCount())
-            e = shplayer.extent()
-            print("Extent:", e.xMinimum(), e.yMinimum(), e.xMaximum(), e.yMaximum())
+#            pts = [QgsPointXY(x_min, y_min), QgsPointXY(x_min, y_max), QgsPointXY(x_max, y_max)]
+#            poly2.setGeometry(QgsGeometry.fromPolygonXY([pts]))
+#            poly2.setAttributes([0, 3])
+#            provider.addFeatures([poly])
+##            provider.addFeatures([np.nan])
+#            provider.addFeatures([poly2])
              
             for f in shplayer.getFeatures():
                 print("Feature:", f.id(), f.attributes(), f.geometry().asPolygon())
@@ -363,7 +347,7 @@ class Raster2Vec:
             
 #            print(selectedLayer.name())
             print(band1)
-            print(band1_2)
+#            print(band1_2)
             print(band1.dtype)
             print(band1.data.contiguous)
 #            print(band2)
@@ -378,71 +362,115 @@ class Raster2Vec:
             
             #Ci-dessous le code à tester du grid, après résoudre le problème de la Bounding Box
             
-#            def compute_grid(lin, col):
-#                """
-#                Compute the Astar representation of a 8-neighborhood,grid graph
-#                INPUT:
-#                lin, col = size of the grid
-#                OUTPUT:
-#                first_edge, adj_vertices = Astar graph
-#                edgeweight = associated edge weight
-#                """
-#                A = np.arange(lin*col).reshape(lin,col)
-#                # down arrow
-#                source  = A[:-1,:]
-#                target   = A[1:,:]
-#                down = np.stack((source.flatten(), target.flatten()),0)
-#                # right arrow
-#                source  = A[:,:-1]
-#                target  = A[:,1:]
-#                right = np.stack((source.flatten(), target.flatten()),0)
-#                # down-right arrow
-#                source = A[:-1,:-1]
-#                target  = A[1:,1:]
-#                down_right = np.stack((source.flatten(), target.flatten()),0)
-#                # up-right arrow
-#                source = A[1:,:-1]
-#                target = A[:-1,1:]
-#                up_right = np.stack((source.flatten(), target.flatten()),0)
-#                #mergeing
-#                T = np.concatenate((right, down, down_right, up_right), axis=1)
-#                #weighting, see "Computing Geodesics and Minimal Surfaces via Graph Cuts", Boyjob & Kolmogorov 2003
-#                weights = np.ones((T.shape[1],),dtype='f4')
-#                weights[int(T.shape[1]/2):] = 1/math.sqrt(2)
-#                #formatting
-#                reorder = T[0,:].argsort()
-#                T = T[:,reorder]
-#                weights = weights[reorder]
-#                v = np.concatenate(([0],np.where((T[0,:-1]==T[0,1:])==False)[0]+1,[T.shape[1], T.shape[1]]))
-#                first_edge = np.array(v, dtype='uint32')
-#                adj_vertices = np.array(T[1,:],dtype='uint32') 
-#                return first_edge, adj_vertices, weights
-#            #input raster
-#            obs = mpimg.imread('lena.png')[:,:,0]
-#            #bounding box
+            def compute_grid(lin, col):
+                """
+                Compute the Astar representation of a 8-neighborhood,grid graph
+                INPUT:
+                lin, col = size of the grid
+                OUTPUT:
+                first_edge, adj_vertices = Astar graph
+                edgeweight = associated edge weight
+                """
+                A = np.arange(lin*col).reshape(lin,col)
+                # down arrow
+                source  = A[:-1,:]
+                target   = A[1:,:]
+                down = np.stack((source.flatten(), target.flatten()),0)
+                # right arrow
+                source  = A[:,:-1]
+                target  = A[:,1:]
+                right = np.stack((source.flatten(), target.flatten()),0)
+                # down-right arrow
+                source = A[:-1,:-1]
+                target  = A[1:,1:]
+                down_right = np.stack((source.flatten(), target.flatten()),0)
+                # up-right arrow
+                source = A[1:,:-1]
+                target = A[:-1,1:]
+                up_right = np.stack((source.flatten(), target.flatten()),0)
+                #mergeing
+                T = np.concatenate((right, down, down_right, up_right), axis=1)
+                #weighting, see "Computing Geodesics and Minimal Surfaces via Graph Cuts", Boyjob & Kolmogorov 2003
+                weights = np.ones((T.shape[1],),dtype='f4')
+                weights[int(T.shape[1]/2):] = 1/np.sqrt(2)
+                #formatting
+                reorder = T[0,:].argsort()
+                T = T[:,reorder]
+                weights = weights[reorder]
+                v = np.concatenate(([0],np.where((T[0,:-1]==T[0,1:])==False)[0]+1,[T.shape[1], T.shape[1]]))
+                first_edge = np.array(v, dtype='uint32')
+                adj_vertices = np.array(T[1,:],dtype='uint32') 
+                return first_edge, adj_vertices, weights
+            #input raster
+            obs = band1
+            #bounding box
 #            min_x = 0	
 #            min_y = 0
 #            max_x = 10
 #            max_y = 10		
-#            true_size_x = max_x-min_x
-#            true_size_y = max_y-min_y
-#            lin = obs.shape[0]
-#            col= obs.shape[1]
-#            delta_x = true_size_x/col
-#            delta_y = true_size_y/lin
-#            first_edge, adj_vertices, edg_weights = compute_grid(lin, col)
-#            edg_weights = edg_weights.astype(obs.dtype)
-#            
-#            Comp, rX, dump = cp_kmpp_d0_dist(1, obs.flatten(), first_edge, adj_vertices, edge_weights = edg_weights*0.05)
-#            print('cp results')
-#            #print(Comp.reshape(obs.shape))
-#            bb, nparts, npoints, parts, points = multilabel_potrace_shp(col, lin, Comp, rX.shape[1])
-#            print('potrace results')
-#            #print(bb)
-#            #print(nparts)
-#            #print(npoints)
-#            ##print(parts)
-#            #print(points)
+            true_size_x = x_max-x_min
+            true_size_y = y_max-y_min
+            lin = obs.shape[0]
+            col = obs.shape[1]
+#            print("Ligne: ", lin)
+#            print("Colonne: ", col)
+            delta_x = true_size_x/col
+            delta_y = true_size_y/lin
+            first_edge, adj_vertices, edg_weights = compute_grid(lin, col)
+            edg_weights = edg_weights.astype(obs.dtype)
+            
+            Comp, rX, dump = cp_kmpp_d0_dist(1, obs.flatten(), first_edge, adj_vertices, edge_weights = edg_weights*0.05)
+            print('cp results')
+            #print(Comp.reshape(obs.shape))
+            bb, nparts, npoints, parts, points = multilabel_potrace_shp(col, lin, Comp, rX.shape[1])
+            print('potrace results')
+            #print(bb)
+            #print(nparts)
+            #print(npoints)
+            #print(parts)
+            #print(points)
+            
+            n_comp = nparts.shape[0]
+            index_parts = 0
+            index_points = 0
+            polygons = []
+            for i_comp in range(n_comp):
+#                print("Valeur i_comp", i_comp)
+#                print("Valeur rX[i_comp]: ", rX[0][i_comp])
+                poly.setAttributes([i_comp, rX[0][i_comp]])
+                vertices = []
+                pivots = np.append(index_points +parts[index_parts:index_parts + nparts[i_comp]], index_points + npoints[i_comp])
+                index_parts = index_parts + nparts[i_comp]
+                index_points = index_points + npoints[i_comp]
+                for i_parts in range(nparts[i_comp]):
+                    contour = range(pivots[i_parts],pivots[i_parts+1])
+                    vertices.append([[QgsPointXY(0,i), QgsPointXY(1,i)] for i in contour]) #replace with QGIS Points; ajouter un np.nan à la fin de la ligne
+#            print("n_comp: ", n_comp)
+            print("Vertices: ", vertices)
+            poly.setGeometry(QgsGeometry.fromPolylineXY(vertices))
+                
+            # Commit changes
+            shplayer.updateFields()
+            shplayer.updateExtents()
+            # Show in project
+            QgsProject.instance().addMapLayer(shplayer)
+            
+            print("No. fields:", len(provider.fields()))
+            print("No. features:", provider.featureCount())
+            e = shplayer.extent()
+            print("Extent:", e.xMinimum(), e.yMinimum(), e.xMaximum(), e.yMaximum())
+#            print("Polygons: ", polygons)
+
+#            def draw_polygons(polygons):
+#                x_total = []
+#                y_total = []
+#                for i_poly in range(len(polygons)):
+#                    for i_ring in range(len(polygons[i_poly])):
+#                        x = [max_y-(min_y + p[0] * delta_y) for p in polygons[i_poly][i_ring]]        # Translation dilatation, en utilisant les lignes 98 et 99
+#                        y = [max_x - (min_x + p[1] * delta_x) for p in polygons[i_poly][i_ring]]
+#                        x_total = x_total + x + [np.nan]      #Le np.nan indique une discontinuité
+#                        y_total = y_total + y + [np.nan]
+#                        plt.plot(y_total, x_total, c='r', linewidth=0.5)
 
             #print("Dimension of the selected raster: ", current_layer.width(), current_layer.height())
 #            self.iface.messageBar().pushMessage("Success", "Output file written at " + filename, level=Qgis.Success, duration=3)
