@@ -290,13 +290,13 @@ class Raster2Vec:
             selectedBandIndex = self.dlg.raster_band.currentIndex()
             print("Band number: ", selectedBandIndex)
             
-            selectedLayerIndex2 = self.dlg.input_weight_raster2.currentIndex()
-#            print(selectedLayerIndex)
-            selectedLayer2 = allrasterlayers[selectedLayerIndex2]
-            current_path_wraster = selectedLayer2.source()
-            selectedLayer2_width = selectedLayer2.width()
-            selectedLayer2_height = selectedLayer2.height()
-            selectedLayer2_crs = selectedLayer2.crs()
+#            selectedLayerIndex2 = self.dlg.input_weight_raster2.currentIndex()
+##            print(selectedLayerIndex)
+#            selectedLayer2 = allrasterlayers[selectedLayerIndex2]
+#            current_path_wraster = selectedLayer2.source()
+#            selectedLayer2_width = selectedLayer2.width()
+#            selectedLayer2_height = selectedLayer2.height()
+#            selectedLayer2_crs = selectedLayer2.crs()
             
             shplayer = QgsVectorLayer("Polygon", "temporary_polygon", "memory")
             shplayer.setCrs(selectedLayer_crs)
@@ -318,13 +318,13 @@ class Raster2Vec:
 #            poly.setGeometry(QgsGeometry.fromPolygonXY([pts]))
 #            poly.setAttributes([0, 3])
             
-#            poly2 = QgsFeature()
+            poly2 = QgsFeature()
                         
-#            pts = [QgsPointXY(x_min, y_min), QgsPointXY(x_min, y_max), QgsPointXY(x_max, y_max)]
+            pts = [QgsPointXY(x_min, y_min), QgsPointXY(x_min, y_max), QgsPointXY(x_max, y_max)]
 #            poly2.setGeometry(QgsGeometry.fromPolygonXY([pts]))
 #            poly2.setAttributes([0, 3])
 #            provider.addFeatures([poly])
-##            provider.addFeatures([np.nan])
+#            provider.addFeatures([np.nan])
 #            provider.addFeatures([poly2])
              
             for f in shplayer.getFeatures():
@@ -410,10 +410,12 @@ class Raster2Vec:
 #            max_y = 10		
             true_size_x = x_max-x_min
             true_size_y = y_max-y_min
+            print(true_size_x)
+            print(true_size_y)
             lin = obs.shape[0]
             col = obs.shape[1]
-#            print("Ligne: ", lin)
-#            print("Colonne: ", col)
+            print("Ligne: ", lin)
+            print("Colonne: ", col)
             delta_x = true_size_x/col
             delta_y = true_size_y/lin
             first_edge, adj_vertices, edg_weights = compute_grid(lin, col)
@@ -428,27 +430,30 @@ class Raster2Vec:
             #print(nparts)
             #print(npoints)
             #print(parts)
-            #print(points)
+#            print(points)
             
             n_comp = nparts.shape[0]
+            print("n_comp: ", n_comp)
             index_parts = 0
             index_points = 0
             polygons = []
             for i_comp in range(n_comp):
 #                print("Valeur i_comp", i_comp)
 #                print("Valeur rX[i_comp]: ", rX[0][i_comp])
+                poly = QgsFeature()
                 poly.setAttributes([i_comp, rX[0][i_comp]])
-                vertices = []
+                vertices = [[]]   #Liste de liste de QgsPointXY
                 pivots = np.append(index_points +parts[index_parts:index_parts + nparts[i_comp]], index_points + npoints[i_comp])
                 index_parts = index_parts + nparts[i_comp]
                 index_points = index_points + npoints[i_comp]
-                for i_parts in range(nparts[i_comp]):
+                for i_parts in range(nparts[i_comp]):   #Créer une polyligne, utiliser add
                     contour = range(pivots[i_parts],pivots[i_parts+1])
-                    vertices.append([[QgsPointXY(0,i), QgsPointXY(1,i)] for i in contour]) #replace with QGIS Points; ajouter un np.nan à la fin de la ligne
-#            print("n_comp: ", n_comp)
-            print("Vertices: ", vertices)
-            poly.setGeometry(QgsGeometry.fromPolylineXY(vertices))
+                    vertices.append([QgsPointXY((min_x + points[0,i] * delta_x), (min_y + points[1,i] * delta_y)) for i in contour]) #replace with QGIS Points; ajouter un np.nan à la fin de la ligne
+#                    break
+                poly.setGeometry(QgsGeometry.fromPolygonXY(vertices))
+                provider.addFeatures([poly])
                 
+#            print(vertices)
             # Commit changes
             shplayer.updateFields()
             shplayer.updateExtents()
@@ -459,18 +464,39 @@ class Raster2Vec:
             print("No. features:", provider.featureCount())
             e = shplayer.extent()
             print("Extent:", e.xMinimum(), e.yMinimum(), e.xMaximum(), e.yMaximum())
-#            print("Polygons: ", polygons)
+
+            coords_list = []
 
 #            def draw_polygons(polygons):
+#                c = 0
 #                x_total = []
 #                y_total = []
 #                for i_poly in range(len(polygons)):
 #                    for i_ring in range(len(polygons[i_poly])):
+##                        print(min_y)
+##                        print(delta_y)
+#
 #                        x = [max_y-(min_y + p[0] * delta_y) for p in polygons[i_poly][i_ring]]        # Translation dilatation, en utilisant les lignes 98 et 99
 #                        y = [max_x - (min_x + p[1] * delta_x) for p in polygons[i_poly][i_ring]]
 #                        x_total = x_total + x + [np.nan]      #Le np.nan indique une discontinuité
 #                        y_total = y_total + y + [np.nan]
-#                        plt.plot(y_total, x_total, c='r', linewidth=0.5)
+#                        
+##                        print(x_total)
+##                        print(y_total)
+#                        
+#                        
+#                        coords_list.append(QgsPointXY(x_total[c], y_total[c]))
+#                        c += 1
+                
+#                for e in x_total:
+                    
+#                print(x_total)
+#                print(y_total)
+                        
+            draw_polygons(polygons)
+            print("Liste des points limite: ", coords_list)
+            poly.setGeometry(QgsGeometry.fromPolylineXY(coords_list))
+            provider.addFeatures([poly])
 
             #print("Dimension of the selected raster: ", current_layer.width(), current_layer.height())
 #            self.iface.messageBar().pushMessage("Success", "Output file written at " + filename, level=Qgis.Success, duration=3)
