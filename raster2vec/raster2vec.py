@@ -302,23 +302,14 @@ class Raster2Vec:
             y_max = ext.yMaximum()
             print("Coordinates: ", x_min, x_max, y_min, y_max)
             
-            #This is a feature, which means a variable/object that is added to a shapefile. To be more specific, the feature will be added to the provider.
-#            poly = QgsFeature()
+            #This is a feature used for test
+#            poly_test = QgsFeature()
 #                        
 #            pts = [QgsPointXY(x_min, y_min), QgsPointXY(x_min, y_max), QgsPointXY(x_max, y_max), QgsPointXY(x_max, y_min)]
-#            poly.setGeometry(QgsGeometry.fromPolygonXY([pts]))
-#            provider.addFeatures([poly])
+#            poly_test.setGeometry(QgsGeometry.fromPolygonXY([pts]))
+#            provider.addFeatures([poly_test])
 
-##            poly.setAttributes([0, 3])
-#            
-#            poly2 = QgsFeature()
-#                        
-#            pts = [QgsPointXY(x_min, y_min), QgsPointXY(x_min, y_max), QgsPointXY(x_max, y_max)]
-##            poly2.setGeometry(QgsGeometry.fromPolygonXY([pts]))
-##            poly2.setAttributes([0, 3])
-##            provider.addFeatures([poly])
-##            provider.addFeatures([np.nan])
-##            provider.addFeatures([poly2])
+#            poly.setAttributes([0, 3])
              
 #            for f in shplayer.getFeatures():
 #                print("Feature:", f.id(), f.attributes(), f.geometry().asPolygon())
@@ -385,17 +376,20 @@ class Raster2Vec:
                 return first_edge, adj_vertices, weights
             #input raster
             obs = band1
+            if obs.dtype != 'float32':
+                obs = band1.astype('float32')/255.0
+#            print(obs)
             
             #Length and height of the raster.            
             true_size_x = x_max-x_min
             true_size_y = y_max-y_min
-            print(true_size_x)
-            print(true_size_y)
+#            print(true_size_x)
+#            print(true_size_y)
             
             lin = obs.shape[0]
             col = obs.shape[1]
-            print("Ligne: ", lin)
-            print("Colonne: ", col)
+#            print("Ligne: ", lin)
+#            print("Colonne: ", col)
             
             #
             delta_x = true_size_x/col
@@ -432,9 +426,6 @@ class Raster2Vec:
                 for i_parts in range(nparts[i_comp]):   #Créer une polyligne, utiliser add
                     contour = range(pivots[i_parts], pivots[i_parts+1])
                     vertices.append(QgsPointXY((x_min + points[0,i] * delta_x), (y_min + points[1,i] * delta_y)) for i in contour) #replace with QGIS Points; ajouter un np.nan à la fin de la ligne
-#                    print("valeurs min", x_min, y_min)
-#                    print((points[0, i], points[1, i]) for i in contour)
-#                    print("deltas", delta_x, delta_y)
 #                    break
                 poly2.setGeometry(QgsGeometry.fromPolygonXY(vertices))
                 provider.addFeatures([poly2])
@@ -442,6 +433,7 @@ class Raster2Vec:
 #                break
                 
 #            print(vertices)
+            
             # Commit changes
             shplayer.updateFields()
             shplayer.updateExtents()
