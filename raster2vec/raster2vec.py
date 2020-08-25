@@ -306,10 +306,17 @@ class Raster2Vec:
 #            poly_test = QgsFeature()
 #                        
 #            pts = [QgsPointXY(x_min, y_min), QgsPointXY(x_min, y_max), QgsPointXY(x_max, y_max), QgsPointXY(x_max, y_min)]
-#            poly_test.setGeometry(QgsGeometry.fromPolygonXY([pts]))
+#            
+#            print(x_min + 0.3*(x_max-x_min))
+#            print(y_min + 0.3*(y_max-y_min))
+#            print(x_min + 0.6*(x_max-x_min))
+#            print(y_min + 0.6*(y_max-y_min))
+#            print(y_min + 1.2*(y_max-y_min))
+#            pts2 = [QgsPointXY((x_min + 0.3*(x_max-x_min)), (y_min + 0.3*(y_max-y_min))), QgsPointXY((x_min + 0.6 * (x_max - x_min)), (y_min + 0.3*(y_max-y_min))), QgsPointXY((x_min + 0.6 * (x_max - x_min)), (y_min + 0.6*(y_max-y_min)))]
+#            
+#            geom = QgsGeometry.fromPolygonXY([pts, pts2])
+#            poly_test.setGeometry(geom)
 #            provider.addFeatures([poly_test])
-
-#            poly.setAttributes([0, 3])
              
 #            for f in shplayer.getFeatures():
 #                print("Feature:", f.id(), f.attributes(), f.geometry().asPolygon())
@@ -398,7 +405,9 @@ class Raster2Vec:
             edg_weights = edg_weights.astype(obs.dtype)
             print(obs.dtype)
             
-            Comp, rX, dump = cp_kmpp_d0_dist(1, obs.flatten(), first_edge, adj_vertices, edge_weights = edg_weights*0.05)
+#            poly_test = QgsFeature()
+            
+            Comp, rX, dump = cp_kmpp_d0_dist(1, obs.flatten(), first_edge, adj_vertices, edge_weights = edg_weights*0.05, cp_it_max=5)
             print('cp results')
             #print(Comp.reshape(obs.shape))
             bb, nparts, npoints, parts, points = multilabel_potrace_shp(col, lin, Comp, rX.shape[1])
@@ -414,20 +423,33 @@ class Raster2Vec:
             index_parts = 0
             index_points = 0
             polygons = []
+            rX = rX.astype('float32')
+            print("rX ", rX)
+            print(rX.dtype)
+            
             for i_comp in range(n_comp):
 #                print("Valeur i_comp", i_comp)
 #                print("Valeur rX[i_comp]: ", rX[0][i_comp])
                 poly2 = QgsFeature()
-                poly2.setAttributes([i_comp, rX[0][i_comp]])
+#                print(i_comp, rX[0, i_comp]+np.random.rand())
+#                print(float(rX[0, i_comp]))
+                poly2.setAttributes([i_comp, float(rX[0, i_comp])])
                 vertices = []   #Liste de liste de QgsPointXY
                 pivots = np.append(index_points +parts[index_parts:index_parts + nparts[i_comp]], index_points + npoints[i_comp])
                 index_parts = index_parts + nparts[i_comp]
                 index_points = index_points + npoints[i_comp]
-                for i_parts in range(nparts[i_comp]):   #Créer une polyligne, utiliser add
+                for i_parts in range(nparts[i_comp]):
                     contour = range(pivots[i_parts], pivots[i_parts+1])
-                    vertices.append(QgsPointXY((x_min + points[0,i] * delta_x), (y_min + points[1,i] * delta_y)) for i in contour) #replace with QGIS Points; ajouter un np.nan à la fin de la ligne
+                    contourXY = [QgsPointXY((x_min + (col - points[1,i]) * delta_y), (y_min + (lin - points[0,i]) * delta_x)) for i in contour]
+                    
+                    if i_parts == 0:
+                        poly3 = QgsGeometry.fromPolygonXY([contourXY])
+                    else:
+                        poly3.addRing(contourXY)
+                    vertices.append(QgsPointXY((x_min + (col - points[1,i]) * delta_y), (y_min + (lin - points[0,i]) * delta_x)) for i in contour) #replace with QGIS Points; ajouter un np.nan à la fin de la ligne
 #                    break
                 poly2.setGeometry(QgsGeometry.fromPolygonXY(vertices))
+#                poly2.setGeometry(poly3)
                 provider.addFeatures([poly2])
 #                print("Vertices: ", vertices)
 #                break
