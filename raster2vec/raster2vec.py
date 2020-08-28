@@ -340,7 +340,7 @@ class Raster2Vec:
             number_columns = obs.shape[1]
 
             if obs.dtype != 'float32':
-                obs = band1.astype('float32')
+                obs = obs.astype('float32')
                            
             print("Number of rows for raster: ", number_rows)
             print("Number of columns for raster: ", number_columns)
