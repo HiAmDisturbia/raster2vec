@@ -37,13 +37,67 @@ import sys
 
 sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), "./parallel-cut-pursuit/python/wrappers"))
 sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), "./multilabel-potrace/python/wrappers"))
-#sys.path.append('./parallel-cut-pursuit-master/python/wrappers')
-#sys.path.append('./multilabel-potrace-master/python/wrappers')
 
-from cp_kmpp_d0_dist import cp_kmpp_d0_dist
 from multilabel_potrace_shp import multilabel_potrace_shp
-#from cp_pfdr_d1_ql1b import cp_pfdr_d1_ql1b 
-#from cp_pfdr_d1_lsx import cp_pfdr_d1_lsx 
+from cp_kmpp_d0_dist import cp_kmpp_d0_dist
+  
+def compute_grid(lin, col, bin_obs=None):
+    """
+    Compute the Astar representation of a 8-neighborhood,grid graph
+    INPUT:
+    lin, col = size of the grid
+    OUTPUT:
+    first_edge, adj_vertices = Astar graph
+    edgeweight = associated edge weight
+    """
+    A = np.arange(lin*col).reshape(lin,col)
+    # down arrow
+    source  = A[:-1,:]
+    target   = A[1:,:]
+    down = np.stack((source.flatten(), target.flatten()),0)
+    wdown = np.ones(down.shape[1])
+    # right arrow
+    source  = A[:,:-1]
+    target  = A[:,1:]
+    right = np.stack((source.flatten(), target.flatten()),0)
+    wright = np.ones(right.shape[1])
+    # down-right arrow
+    source = A[:-1,:-1]
+    target  = A[1:,1:]
+    down_right = np.stack((source.flatten(), target.flatten()),0)
+    wdown_right = 1/np.sqrt(2)* np.ones(down_right.shape[1])
+    #weighting, see "Computing Geodesics and Minimal Surfaces via Graph Cuts", Boyjob & Kolmogorov 2003
+    # up-right arrow
+    source = A[1:,:-1]
+    target = A[:-1,1:]
+    up_right = np.stack((source.flatten(), target.flatten()),0)
+    wup_right = 1/np.sqrt(2)* np.ones(up_right.shape[1])
+    #mergeing
+    T = np.concatenate((right, down, down_right, up_right), axis=1)
+    weights = np.concatenate((wright, wdown, wdown_right, wup_right), axis=0)
+    #formatting
+    reorder = T[0,:].argsort()
+    T = T[:,reorder]
+    weights = weights[reorder]
+    
+    if bin_obs is not None:
+      weights[bin_obs[T[0,:]] != bin_obs[T[1,:]]] = 0
+    
+    v = np.concatenate(([0],np.where((T[0,:-1]==T[0,1:])==False)[0]+1,[T.shape[1], T.shape[1]]))
+    first_edge = np.array(v, dtype='uint32')
+    adj_vertices = np.array(T[1,:],dtype='uint32') 
+    return first_edge, adj_vertices, weights
+    
+def signed_area(pr2):
+     """Return the signed area enclosed by a ring using the linear time
+     algorithm at http://www.cgafaq.info/wiki/Polygon_Area. A value >= 0
+     indicates a counter-clockwise oriented ring."""
+     xs, ys = map(list, zip(*pr2))
+     if len(xs) < 2:
+      return 0
+     xs.append(xs[1])
+     ys.append(ys[1])
+     return sum(xs[i]*(ys[i+1]-ys[i-1]) for i in range(1, len(pr2)))/2.0
 
 class Raster2Vec:
     """QGIS Plugin Implementation."""
@@ -212,30 +266,24 @@ class Raster2Vec:
             if elt.type() == QgsMapLayer.RasterLayer:
                 allrasterlayers.append(elt)
         allrasterlayers_paths = [layer.source() for layer in allrasterlayers]
-        
         #We clear all values on each widget of the plug-in interface, so it technically is a reset of the values inside each widget.
-        self.dlg.input_raster2.clear()
+        self.dlg.input_raster.clear()
         self.dlg.raster_band.clear()
-        self.dlg.input_weight_raster2.clear()
+        self.dlg.input_weight_raster.clear()
         self.dlg.weight_raster_band.clear()
         self.dlg.line_weight_value.clear()
         self.dlg.line_output_vector.clear()
         self.dlg.line_output_layer_name.clear()
-        self.dlg.input_raster2.addItems([layer.name() for layer in allrasterlayers])
-        self.dlg.input_weight_raster2.addItems([layer.name() for layer in allrasterlayers])
-        
-        allrasterlayers.sort
-        print(allrasterlayers)
-        print([elt.name() for elt in allrasterlayers])
+        self.dlg.input_raster.addItems([layer.name() for layer in allrasterlayers])
         
         def layer_field_raster():
             """
             Adds the band values of the raster selected in Input Raster
             """
+            print('selected')
             # Identify selected layer by its index
-            selectedLayerIndex = self.dlg.input_raster2.currentIndex()
+            selectedLayerIndex = self.dlg.input_raster.currentIndex()
             selectedLayer = allrasterlayers[selectedLayerIndex]
-#            print(selectedLayer.name())
             # Counts the number of bands of the current layer, then adds the bands on the raster band comboBox
             amount_of_bands = selectedLayer.bandCount()
             self.dlg.raster_band.clear()
@@ -246,46 +294,45 @@ class Raster2Vec:
             Adds the band values of the raster selected in Weight Raster
             """
             # Same comments as the ones in the above function.
-            selectedLayerIndex = self.dlg.input_weight_raster2.currentIndex()
+            selectedLayerIndex = self.dlg.input_weight_raster.currentIndex()
             selectedLayer = allrasterlayers[selectedLayerIndex]
             amount_of_bands = selectedLayer.bandCount()
             self.dlg.weight_raster_band.clear()            
             self.dlg.weight_raster_band.addItems([selectedLayer.bandName(i) for i in range(amount_of_bands)])
-
+            
+        layer_field_raster()
+        layer_field_wraster()
+        
+        allrasterlayers.sort
+        
         # Everytime the user selects a raster, the band values will change
-        self.dlg.input_raster2.currentIndexChanged.connect(layer_field_raster)
-        self.dlg.input_weight_raster2.currentIndexChanged.connect(layer_field_wraster)
+        self.dlg.input_raster.currentIndexChanged.connect(layer_field_raster)
+        self.dlg.input_weight_raster.currentIndexChanged.connect(layer_field_wraster)
         
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
-        result = self.dlg.exec_()
+        #result = self.dlg.exec_()
         # See if OK was pressed
-        if result:
+        weight = 0
+        if self.dlg.exec_():
             # This is where we take the inputs done by the user.
-            weight = self.dlg.line_weight_value.text()
+            try:
+              weight = float(self.dlg.line_weight_value.text())
+            except ValueError:
+              print("Default value for regulirization strength")
+              weight = 1.0
             output_vector = self.dlg.line_output_vector.text()
             output_layer_name = self.dlg.line_output_layer_name.text()
-            
-            if weight == '0' or weight is None:
-                #When the user puts a 0 inside the field, or if there is no input, the value will be changed to 1.
-#                print(weight)
-                weight = self.dlg.line_weight_value.setText('1')
-                weight = float(self.dlg.line_weight_value.text())
-            
-#            print(weight)
 
             #We get the selected layer, and its source, width, height, crs, and band number. They will be used later in the code
-            selectedLayerIndex = self.dlg.input_raster2.currentIndex()
-#            print(selectedLayerIndex)
+            selectedLayerIndex = self.dlg.input_raster.currentIndex()
             selectedLayer = allrasterlayers[selectedLayerIndex]
             current_path_raster = selectedLayer.source()
             selectedLayer_width = selectedLayer.width()
             selectedLayer_height = selectedLayer.height()
             selectedLayer_crs = selectedLayer.crs()
-#            print("CRS: ", selectedLayer_crs)
             selectedBandIndex = self.dlg.raster_band.currentIndex()
-#            print("Band number: ", selectedBandIndex)
             
             #Creation of a new shapefile of a polygon type, that will take the size of the bounding box of the selected raster.
             shplayer = QgsVectorLayer("Polygon", "temporary_polygon", "memory")
@@ -302,159 +349,70 @@ class Raster2Vec:
             y_max = ext.yMaximum()
             print("Coordinates: ", x_min, x_max, y_min, y_max)
             
-            #This is a feature used for test
-#            poly_test = QgsFeature()
-#                        
-#            pts = [QgsPointXY(x_min, y_min), QgsPointXY(x_min, y_max), QgsPointXY(x_max, y_max), QgsPointXY(x_max, y_min)]
-#            
-#            print(x_min + 0.3*(x_max-x_min))
-#            print(y_min + 0.3*(y_max-y_min))
-#            print(x_min + 0.6*(x_max-x_min))
-#            print(y_min + 0.6*(y_max-y_min))
-#            print(y_min + 1.2*(y_max-y_min))
-#            pts2 = [QgsPointXY((x_min + 0.3*(x_max-x_min)), (y_min + 0.3*(y_max-y_min))), QgsPointXY((x_min + 0.6 * (x_max - x_min)), (y_min + 0.3*(y_max-y_min))), QgsPointXY((x_min + 0.6 * (x_max - x_min)), (y_min + 0.6*(y_max-y_min)))]
-#            
-#            geom = QgsGeometry.fromPolygonXY([pts, pts2])
-#            poly_test.setGeometry(geom)
-#            provider.addFeatures([poly_test])
-             
-#            for f in shplayer.getFeatures():
-#                print("Feature:", f.id(), f.attributes(), f.geometry().asPolygon())
-            
             #We create the array of the raster image, depending on the band number selected by the user.
             dataset = gdal.Open(current_path_raster)
-            band1 = np.array(dataset.GetRasterBand(selectedBandIndex + 1).ReadAsArray())
-            moy = np.nanmean(band1)
-            avrg = np.average(band1)
-            number_rows = band1.shape[0]
-            number_columns = band1.shape[1]
-            
-#            print(selectedLayer.name())
-            print(band1)
-            print(band1.dtype)
-            print(band1.data.contiguous)
+            obs = np.array(dataset.GetRasterBand(selectedBandIndex + 1).ReadAsArray())
+            number_rows = obs.shape[0]
+            number_columns = obs.shape[1]
 
-            print(moy)
-            print(avrg)
-            print((band1==band1).all())
+            if obs.dtype != 'float32':
+                obs = band1.astype('float32')
+                           
             print("Number of rows for raster: ", number_rows)
             print("Number of columns for raster: ", number_columns)
-            
-            #Ci-dessous le code à tester du grid, après résoudre le problème de la Bounding Box
-            
-            def compute_grid(lin, col):
-                """
-                Compute the Astar representation of a 8-neighborhood,grid graph
-                INPUT:
-                lin, col = size of the grid
-                OUTPUT:
-                first_edge, adj_vertices = Astar graph
-                edgeweight = associated edge weight
-                """
-                A = np.arange(lin*col).reshape(lin,col)
-                # down arrow
-                source  = A[:-1,:]
-                target   = A[1:,:]
-                down = np.stack((source.flatten(), target.flatten()),0)
-                # right arrow
-                source  = A[:,:-1]
-                target  = A[:,1:]
-                right = np.stack((source.flatten(), target.flatten()),0)
-                # down-right arrow
-                source = A[:-1,:-1]
-                target  = A[1:,1:]
-                down_right = np.stack((source.flatten(), target.flatten()),0)
-                # up-right arrow
-                source = A[1:,:-1]
-                target = A[:-1,1:]
-                up_right = np.stack((source.flatten(), target.flatten()),0)
-                #mergeing
-                T = np.concatenate((right, down, down_right, up_right), axis=1)
-                #weighting, see "Computing Geodesics and Minimal Surfaces via Graph Cuts", Boyjob & Kolmogorov 2003
-                weights = np.ones((T.shape[1],),dtype='f4')
-                weights[int(T.shape[1]/2):] = 1/np.sqrt(2)
-                #formatting
-                reorder = T[0,:].argsort()
-                T = T[:,reorder]
-                weights = weights[reorder]
-                v = np.concatenate(([0],np.where((T[0,:-1]==T[0,1:])==False)[0]+1,[T.shape[1], T.shape[1]]))
-                first_edge = np.array(v, dtype='uint32')
-                adj_vertices = np.array(T[1,:],dtype='uint32') 
-                return first_edge, adj_vertices, weights
-            #input raster
-            obs = band1
-            if obs.dtype != 'float32':
-                obs = band1.astype('float32')/255.0
-#            print(obs)
-            
+                      
             #Length and height of the raster.            
             true_size_x = x_max-x_min
             true_size_y = y_max-y_min
-#            print(true_size_x)
-#            print(true_size_y)
-            
             lin = obs.shape[0]
             col = obs.shape[1]
-#            print("Ligne: ", lin)
-#            print("Colonne: ", col)
-            
-            #
             delta_x = true_size_x/col
             delta_y = true_size_y/lin
-            first_edge, adj_vertices, edg_weights = compute_grid(lin, col)
+            
+            obs = obs.reshape((lin*col,1)).T
+            nodata = obs!=obs
+            obs[nodata] = 0.0
+            
+            first_edge, adj_vertices, edg_weights = compute_grid(lin, col, (obs==0).flatten())
             edg_weights = edg_weights.astype(obs.dtype)
-            print(obs.dtype)
             
-#            poly_test = QgsFeature()
+            vert_weights = np.ones((lin*col), dtype='f4')
             
-            Comp, rX, dump = cp_kmpp_d0_dist(1, obs.flatten(), first_edge, adj_vertices, edge_weights = edg_weights*0.05, cp_it_max=5)
-            print('cp results')
-            #print(Comp.reshape(obs.shape))
+            reg_strength = weight * np.std(obs)**2
+            print(obs.mean())
+            print(edg_weights.mean())
+            print(reg_strength)
+            print("Starting Cut Pursuit")
+            Comp, rX, dump = cp_kmpp_d0_dist(1, obs , first_edge, adj_vertices, edge_weights = reg_strength * edg_weights, vert_weights = vert_weights, cp_it_max=8, cp_dif_tol = 1e-3)
+            print('cp done')
             bb, nparts, npoints, parts, points = multilabel_potrace_shp(col, lin, Comp, rX.shape[1])
-            print('potrace results')
-            #print(bb)
-            #print(nparts)
-            #print(npoints)
-            #print(parts)
-#            print(points)
+            print('potrace done')
             
             n_comp = nparts.shape[0]
-#            print("n_comp: ", n_comp)
             index_parts = 0
             index_points = 0
-            polygons = []
-            rX = rX.astype('float32')
-            print("rX ", rX)
-            print(rX.dtype)
-            
+   
             for i_comp in range(n_comp):
-#                print("Valeur i_comp", i_comp)
-#                print("Valeur rX[i_comp]: ", rX[0][i_comp])
-                poly2 = QgsFeature()
-#                print(i_comp, rX[0, i_comp]+np.random.rand())
-#                print(float(rX[0, i_comp]))
-                poly2.setAttributes([i_comp, float(rX[0, i_comp])])
+                #print("!")
+                #print(i_comp)
+                poly = QgsFeature()
+                poly.setAttributes([i_comp, float(rX[0, i_comp])])
                 vertices = []   #Liste de liste de QgsPointXY
+                #print(i_comp)
+                #print(len(vertices))
                 pivots = np.append(index_points +parts[index_parts:index_parts + nparts[i_comp]], index_points + npoints[i_comp])
                 index_parts = index_parts + nparts[i_comp]
                 index_points = index_points + npoints[i_comp]
                 for i_parts in range(nparts[i_comp]):
                     contour = range(pivots[i_parts], pivots[i_parts+1])
-                    contourXY = [QgsPointXY((x_min + (col - points[1,i]) * delta_y), (y_min + (lin - points[0,i]) * delta_x)) for i in contour]
-                    
-                    if i_parts == 0:
-                        poly3 = QgsGeometry.fromPolygonXY([contourXY])
-                    else:
-                        poly3.addRing(contourXY)
-                    vertices.append(QgsPointXY((x_min + (col - points[1,i]) * delta_y), (y_min + (lin - points[0,i]) * delta_x)) for i in contour) #replace with QGIS Points; ajouter un np.nan à la fin de la ligne
-#                    break
-                poly2.setGeometry(QgsGeometry.fromPolygonXY(vertices))
-#                poly2.setGeometry(poly3)
-                provider.addFeatures([poly2])
-#                print("Vertices: ", vertices)
-#                break
-                
-#            print(vertices)
+                    contourXY = [QgsPointXY((x_min + (col - points[1,i]) * delta_y), (y_min + (lin - points[0,i]) * delta_x)) for i in contour]#reversed(contour)]
+                    if i_parts == 0 or signed_area(contourXY) < 0 :
+                      vertices.append(contourXY)                   
+                print("%d / %d, : %d" % (i_comp, n_comp, nparts[i_comp]))
+                #print(len(vertices))
+                poly.setGeometry(QgsGeometry.fromPolygonXY(vertices))
+                provider.addFeatures([poly])
+                #break
             
             # Commit changes
             shplayer.updateFields()
@@ -466,11 +424,7 @@ class Raster2Vec:
             print("No. features:", provider.featureCount())
             e = shplayer.extent()
             print("Extent:", e.xMinimum(), e.yMinimum(), e.xMaximum(), e.yMaximum())
-
-            provider.addFeatures([poly2])
-
-            #print("Dimension of the selected raster: ", current_layer.width(), current_layer.height())
-#            self.iface.messageBar().pushMessage("Success", "Output file written at " + filename, level=Qgis.Success, duration=3)
+            
             pass
 
     def select_output_file(self):
