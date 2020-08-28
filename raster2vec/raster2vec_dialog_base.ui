@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>942</width>
-    <height>485</height>
+    <width>949</width>
+    <height>495</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <property name="geometry">
     <rect>
      <x>590</x>
-     <y>440</y>
+     <y>450</y>
      <width>341</width>
      <height>32</height>
     </rect>
@@ -62,7 +62,7 @@
    <property name="geometry">
     <rect>
      <x>900</x>
-     <y>310</y>
+     <y>320</y>
      <width>31</width>
      <height>21</height>
     </rect>
@@ -75,7 +75,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>280</y>
+     <y>290</y>
      <width>81</width>
      <height>20</height>
     </rect>
@@ -88,7 +88,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>340</y>
+     <y>350</y>
      <width>141</width>
      <height>20</height>
     </rect>
@@ -101,7 +101,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>410</y>
+     <y>420</y>
      <width>171</width>
      <height>20</height>
     </rect>
@@ -137,7 +137,7 @@
    <property name="geometry">
     <rect>
      <x>110</x>
-     <y>220</y>
+     <y>230</y>
      <width>121</width>
      <height>20</height>
     </rect>
@@ -179,7 +179,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>190</y>
+     <y>200</y>
      <width>911</width>
      <height>21</height>
     </rect>
@@ -202,7 +202,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>220</y>
+     <y>230</y>
      <width>81</width>
      <height>20</height>
     </rect>
@@ -211,89 +211,67 @@
     <string>Weight value</string>
    </property>
   </widget>
-  <widget class="QgsFilterLineEdit" name="line_weight_value">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>250</y>
-     <width>911</width>
-     <height>27</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-   <property name="placeholderText">
-    <string>Put a value of the weight. If nothing is put on this field, default value = 1</string>
-   </property>
-   <property name="qgisRelation" stdset="0">
-    <string notr="true"/>
-   </property>
-  </widget>
-  <widget class="QgsFilterLineEdit" name="line_output_vector">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>310</y>
-     <width>871</width>
-     <height>27</height>
-    </rect>
-   </property>
-   <property name="placeholderText">
-    <string>Choose a path to save your image:</string>
-   </property>
-   <property name="qgisRelation" stdset="0">
-    <string notr="true"/>
-   </property>
-  </widget>
-  <widget class="QgsFilterLineEdit" name="line_output_layer_name">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>370</y>
-     <width>871</width>
-     <height>27</height>
-    </rect>
-   </property>
-   <property name="placeholderText">
-    <string>Choose a name for the layer that will be added to the map:</string>
-   </property>
-   <property name="qgisRelation" stdset="0">
-    <string notr="true"/>
-   </property>
-  </widget>
-  <widget class="QgsMapLayerComboBox" name="input_raster">
+  <widget class="QComboBox" name="input_raster">
    <property name="geometry">
     <rect>
      <x>20</x>
      <y>40</y>
      <width>861</width>
-     <height>27</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>
-  <widget class="QgsMapLayerComboBox" name="input_weight_raster">
+  <widget class="QComboBox" name="input_weight_raster">
    <property name="geometry">
     <rect>
      <x>20</x>
      <y>140</y>
      <width>861</width>
-     <height>27</height>
+     <height>22</height>
     </rect>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="line_weight_value">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>260</y>
+     <width>911</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="placeholderText">
+    <string>Put a value of the weight. If nothing is put on this field, default value = 1</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="line_output_vector">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>320</y>
+     <width>861</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="placeholderText">
+    <string>Choose a path to save your image:</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="line_output_layer_name">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>380</y>
+     <width>911</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="placeholderText">
+    <string>Choose a name for the layer that will be added to the map:</string>
    </property>
   </widget>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>QgsFilterLineEdit</class>
-   <extends>QLineEdit</extends>
-   <header>qgsfilterlineedit.h</header>
-  </customwidget>
-  <customwidget>
-   <class>QgsMapLayerComboBox</class>
-   <extends>QComboBox</extends>
-   <header>qgsmaplayercombobox.h</header>
-  </customwidget>
   <customwidget>
    <class>QgsRasterBandComboBox</class>
    <extends>QComboBox</extends>

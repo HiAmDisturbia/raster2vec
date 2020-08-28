@@ -11,7 +11,6 @@
         copyright            : (C) 2020 by Paul-Alexandre Nasr
         email                : paul_alexandre99@yahoo.fr
  ***************************************************************************/
-
 /***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -81,7 +80,7 @@ def compute_grid(lin, col, bin_obs=None):
     weights = weights[reorder]
     
     if bin_obs is not None:
-      weights[bin_obs[T[0,:]] != bin_obs[T[1,:]]] = 0
+        weights[bin_obs[T[0,:]] != bin_obs[T[1,:]]] = 0
     
     v = np.concatenate(([0],np.where((T[0,:-1]==T[0,1:])==False)[0]+1,[T.shape[1], T.shape[1]]))
     first_edge = np.array(v, dtype='uint32')
@@ -94,7 +93,7 @@ def signed_area(pr2):
      indicates a counter-clockwise oriented ring."""
      xs, ys = map(list, zip(*pr2))
      if len(xs) < 2:
-      return 0
+         return 0
      xs.append(xs[1])
      ys.append(ys[1])
      return sum(xs[i]*(ys[i+1]-ys[i-1]) for i in range(1, len(pr2)))/2.0
@@ -104,7 +103,6 @@ class Raster2Vec:
 
     def __init__(self, iface):
         """Constructor.
-
         :param iface: An interface instance that will be passed to this class
             which provides the hook by which you can manipulate the QGIS
             application at run time.
@@ -137,12 +135,9 @@ class Raster2Vec:
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
-
         We implement this ourselves since we do not inherit QObject.
-
         :param message: String for translation.
         :type message: str, QString
-
         :returns: Translated version of message.
         :rtype: QString
         """
@@ -162,39 +157,29 @@ class Raster2Vec:
         whats_this=None,
         parent=None):
         """Add a toolbar icon to the toolbar.
-
         :param icon_path: Path to the icon for this action. Can be a resource
             path (e.g. ':/plugins/foo/bar.png') or a normal file system path.
         :type icon_path: str
-
         :param text: Text that should be shown in menu items for this action.
         :type text: str
-
         :param callback: Function to be called when the action is triggered.
         :type callback: function
-
         :param enabled_flag: A flag indicating if the action should be enabled
             by default. Defaults to True.
         :type enabled_flag: bool
-
         :param add_to_menu: Flag indicating whether the action should also
             be added to the menu. Defaults to True.
         :type add_to_menu: bool
-
         :param add_to_toolbar: Flag indicating whether the action should also
             be added to the toolbar. Defaults to True.
         :type add_to_toolbar: bool
-
         :param status_tip: Optional text to show in a popup when mouse pointer
             hovers over the action.
         :type status_tip: str
-
         :param parent: Parent widget for the new action. Defaults None.
         :type parent: QWidget
-
         :param whats_this: Optional text to show in the status bar when the
             mouse pointer hovers over the action.
-
         :returns: The action that was created. Note that the action is also
             added to self.actions list.
         :rtype: QAction
@@ -312,16 +297,15 @@ class Raster2Vec:
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
-        #result = self.dlg.exec_()
         # See if OK was pressed
         weight = 0
         if self.dlg.exec_():
             # This is where we take the inputs done by the user.
             try:
-              weight = float(self.dlg.line_weight_value.text())
+                weight = float(self.dlg.line_weight_value.text())
             except ValueError:
-              print("Default value for regulirization strength")
-              weight = 1.0
+                print("Default value for regulirization strength")
+                weight = 1.0
             output_vector = self.dlg.line_output_vector.text()
             output_layer_name = self.dlg.line_output_layer_name.text()
 
@@ -407,7 +391,7 @@ class Raster2Vec:
                     contour = range(pivots[i_parts], pivots[i_parts+1])
                     contourXY = [QgsPointXY((x_min + (col - points[1,i]) * delta_y), (y_min + (lin - points[0,i]) * delta_x)) for i in contour]#reversed(contour)]
                     if i_parts == 0 or signed_area(contourXY) < 0 :
-                      vertices.append(contourXY)                   
+                        vertices.append(contourXY)                   
                 print("%d / %d, : %d" % (i_comp, n_comp, nparts[i_comp]))
                 #print(len(vertices))
                 poly.setGeometry(QgsGeometry.fromPolygonXY(vertices))
@@ -425,7 +409,7 @@ class Raster2Vec:
             e = shplayer.extent()
             print("Extent:", e.xMinimum(), e.yMinimum(), e.xMaximum(), e.yMaximum())
             
-            pass
+#            pass
 
     def select_output_file(self):
         filename, _filter = QFileDialog.getSaveFileName(self.dlg, "Select output file: ", "", 'Image file (*.jpg, *.png, *.tif)')
