@@ -39,6 +39,6 @@ Inside QGIS, go to Plugins -> Install plugins -> Install plugin from ZIP file. T
 
 For the installation of the `multilabe-potrace` and `parallel-cut-pursuit` algorithms, you can follow the same steps as in the **Windows** paragraph.
 
-### Credits
+## Credits
 
 Plugin and code built by Paul-Alexandre Nasr
